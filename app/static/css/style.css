@@ -1,0 +1,245 @@
+/* app/static/css/style.css */
+
+
+
+/* --- 0. Font Definitions (Offline) --- */
+
+/* fira-code-regular - latin */
+@font-face {
+  font-display: swap;
+  font-family: 'Fira Code';
+  font-style: normal;
+  font-weight: 400;
+  src: url('../fonts/fira-code-v26-latin-regular.woff2-latin-regular.woff2') format('woff2');
+}
+
+/* poppins-regular - latin */
+@font-face {
+  font-display: swap;
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 400;
+  src: url('../fonts/poppins-v23-latin-regular.woff2') format('woff2');
+}
+/* poppins-500 - latin */
+@font-face {
+  font-display: swap;
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 500;
+  src: url('../fonts/poppins-v23-latin-500.woff2') format('woff2');
+}
+/* poppins-600 - latin */
+@font-face {
+  font-display: swap;
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  src: url('../fonts/poppins-v23-latin-600.woff2') format('woff2');
+}
+/* poppins-700 - latin */
+@font-face {
+  font-display: swap;
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 700;
+  src: url('../fonts/poppins-v23-latin-700.woff2') format('woff2');
+}
+/* --- 1. Variables and Global Styles --- */
+:root {
+    --indigo-600: #4f46e5;
+    --indigo-700: #4338ca;
+    --slate-800: #1e293b;
+    --slate-900: #0f172a;
+    --sky-400: #38bdf8;
+    --gray-200: #e5e7eb;
+    --gray-400: #9ca3af;
+    --white: #ffffff;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--slate-900);
+    color: var(--gray-200);
+    margin: 0;
+    padding: 2rem;
+}
+
+h1, h2, h3, h4 {
+    color: var(--white);
+    font-weight: 600;
+}
+
+a {
+    color: var(--sky-400);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    text-decoration: underline;
+    color: var(--white);
+}
+
+hr {
+    border: none;
+    border-top: 1px solid var(--slate-800);
+    margin: 2rem 0;
+}
+
+/* --- 2. Layout & Navigation --- */
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: rgba(30, 41, 59, 0.5); /* Semi-transparent slate */
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    margin-bottom: 2rem;
+}
+
+nav .brand {
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--white);
+}
+
+nav .nav-links a {
+    margin-left: 1.5rem;
+    font-weight: 500;
+}
+
+/* --- 3. The "Glassy" Card Style --- */
+.card {
+    background: rgba(30, 41, 59, 0.5); /* Semi-transparent slate */
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* --- 4. Forms & Buttons --- */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background-color: var(--slate-800);
+    border: 1px solid var(--slate-800);
+    border-radius: 8px;
+    color: var(--white);
+    font-size: 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--indigo-600);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.5);
+}
+
+.btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background-color: var(--indigo-600);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.2s ease;
+}
+
+.btn:hover {
+    background-color: var(--indigo-700);
+    color: var(--white);
+    text-decoration: none;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+}
+.btn-danger:hover {
+    background-color: #c82333;
+}
+.btn-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+.btn-warning:hover {
+    background-color: #e0a800;
+}
+.btn-success {
+    background-color: #28a745;
+}
+.btn-success:hover {
+    background-color: #218838;
+}
+
+/* --- 5. Specific Components --- */
+#output-area {
+    background-color: var(--slate-800);
+    border: 1px solid var(--slate-800);
+    border-radius: 8px;
+    padding: 1rem;
+    min-height: 100px;
+    font-family: 'Fira Code', monospace;
+    white-space: pre-wrap;
+    color: var(--gray-200);
+}
+
+#ace-editor {
+    border-radius: 8px;
+}
+
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 2rem;
+}
+
+.leaderboard-table th, .leaderboard-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--slate-800);
+}
+
+.leaderboard-table thead {
+    background-color: var(--slate-800);
+}
+
+.alert {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+}
+.alert-success {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+}
+.alert-warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+}

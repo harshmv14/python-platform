@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card" style="text-align: center;">
+    <h1>Welcome, {{ current_user.username if current_user.is_authenticated else 'Guest' }}!</h1>
+    <p>The offline Python Workshop Platform is ready.</p>
+    {% if not current_user.is_authenticated %}
+    <p>Please log in or register to begin.</p>
+    {% else %}
+    <p style="margin-top: 2rem;">
+        <a href="{{ url_for('main.download_submissions') }}" class="btn">Download My Submissions</a>
+    </p>
+    {% endif %}
+</div>
+
+{% if active_challenge %}
+<div class="alert alert-success">
+    <h2>🏆 Active Challenge!</h2>
+    <p>A new challenge is live: <strong>{{ active_challenge.question.title }}</strong></p>
+    <a href="{{ url_for('main.practice_question', question_id=active_challenge.q_id) }}" class="btn btn-success"><strong>Attempt the Challenge!</strong></a>
+</div>
+{% endif %}
+    
+{% if current_user.is_authenticated %}
+    <h2>Practice Problems</h2>
+    {% for section in sections %}
+        <div class="card">
+            <h3>{{ section.title }}</h3>
+            <ul>
+                {% for question in section.questions %}
+                    <li><a href="{{ url_for('main.practice_question', question_id=question.id) }}">{{ question.title }}</a></li>
+                {% else %}
+                    <li>No questions available in this section yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% else %}
+        {% if not sections %}
+            <div class="card">
+                <p>No sections are currently available. Please check back later!</p>
+            </div>
+        {% endif %}
+    {% endfor %}
+{% endif %}
+{% endblock %}

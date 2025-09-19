@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h1>Admin Dashboard</h1>
+    
+    <div style="margin-top: 2rem;">
+        <h3>Global Controls</h3>
+        <a href="{{ url_for('admin.users') }}" class="btn">📋 Manage Users</a>
+        <form action="{{ url_for('admin.toggle_leaderboard') }}" method="POST" style="display: inline;">
+            <input type="submit" value="{{ 'Hide Leaderboard' if leaderboard_visible else 'Show Leaderboard' }}" class="btn btn-warning">
+        </form>
+    <form action="{{ url_for('admin.toggle_hints') }}" method="POST" style="display: inline;">
+    <input type="submit" value="{{ 'Disable Hints' if hints_enabled else 'Enable Hints' }}" class="btn btn-warning">
+</form>
+    </div>
+</div>
+
+<div class="card">
+    <a href="{{ url_for('admin.add_section') }}" class="btn btn-success">+ Add New Section</a>
+</div>
+
+{% for section in sections %}
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>Section: {{ section.title }} {% if not section.is_unlocked %}<span style="color: #ffc107;">(Locked)</span>{% endif %}</h2>
+            <div>
+                <a href="{{ url_for('admin.edit_section', section_id=section.id) }}" class="btn">Edit</a>
+                
+                <form action="{{ url_for('admin.toggle_section_lock', section_id=section.id) }}" method="POST" style="display: inline;">
+                    <input type="submit" value="{{ 'Lock' if section.is_unlocked else 'Unlock' }}" class="btn btn-warning">
+                </form>
+                
+                <form action="{{ url_for('admin.delete_section', section_id=section.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this entire section and all its questions?');">
+                    <input type="submit" value="Delete Section" class="btn btn-danger">
+                </form>
+            </div>
+        </div>
+        
+        <hr>
+
+        <h4 style="margin-top: 20px;">Questions in this section:</h4>
+        <a href="{{ url_for('admin.add_question', section_id=section.id) }}">+ Add New Question</a>
+        
+        <ul style="list-style: none; padding-left: 0;">
+            {% for question in section.questions %}
+                <li style="background: var(--slate-800); padding: 10px; border-radius: 8px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>{{ question.title }}</span>
+                    <span>
+                        <a href="{{ url_for('admin.edit_question', question_id=question.id) }}">Edit</a> |
+                        <form action="{{ url_for('admin.delete_question', question_id=question.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this question?');">
+                            <input type="submit" value="Delete" style="color: #dc3545; border: none; background: none; cursor: pointer; padding: 0; font-size: 1em;">
+                        </form>
+
+                        {% set active_challenge = challenges.get(question.id) %}
+                        {% if active_challenge %}
+                            <form action="{{ url_for('admin.end_challenge', challenge_id=active_challenge.id) }}" method="POST" style="display: inline; margin-left: 15px;">
+                                <input type="submit" value="End Challenge" class="btn btn-warning" style="padding: 5px 10px;">
+                            </form>
+                        {% else %}
+                            <form action="{{ url_for('admin.start_challenge', question_id=question.id) }}" method="POST" style="display: inline; margin-left: 15px;">
+                                <input type="submit" value="Start Challenge" class="btn btn-success" style="padding: 5px 10px;">
+                            </form>
+                        {% endif %}
+                    </span>
+                </li>
+            {% else %}
+                <li>No questions in this section yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endfor %}
+{% endblock %}

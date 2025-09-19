@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    {% if is_challenge %}
+    <div style="font-size: 1.5em; font-weight: bold; color: #ffc107;">
+        Challenge Mode! Timer: <span id="timer">00:00</span>
+    </div>
+    {% endif %}
+    <h1>{{ question.title }}</h1>
+    <p>{{ question.description }}</p>
+</div>
+<div class="card">
+    {% if hints_enabled and question.hints %}
+    <div style="margin-top: 2rem;">
+        <button id="hint-button" class="btn btn-warning" onclick="toggleHint()">Show Hint</button>
+        <div id="hint-content" style="display: none; margin-top: 1rem; padding: 1rem; background-color: var(--slate-800); border-radius: 8px;">
+            <strong>Hint:</strong> {{ question.hints }}
+        </div>
+    </div>
+    {% endif %}
+</div>
+<div class="card">
+    <h3>
+        Your Code:
+        <span id="save-status" style="font-size: 0.8em; color: var(--gray-400); margin-left: 20px;"></span>
+    </h3>
+    <div id="code-editor" style="height: 400px; width: 100%;">{{ initial_code or '' }}</div>
+    <br>
+    <button id="run-button" class="btn">Run Code</button>
+</div>
+
+<div class="card">
+    <h3>Output:</h3>
+    <pre id="output-area">Click "Run Code" to see the output.</pre>
+</div>
+
+<script src="{{ url_for('static', filename='js/ace/ace.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-python.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ace/theme-dracula.js') }}"></script>
+
+<script>
+  const isChallenge = {{ is_challenge|tojson }};
+    let startTime = null;
+    if (isChallenge) {
+        startTime = Date.now();
+        const timerDisplay = document.getElementById('timer');
+        setInterval(() => {
+            const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
+            const seconds = String(elapsedSeconds % 60).padStart(2, '0');
+            timerDisplay.textContent = `${minutes}:${seconds}`;
+        }, 1000);
+    }
+    const editor = ace.edit("code-editor");
+    editor.setTheme("ace/theme/dracula");
+    editor.session.setMode("ace/mode/python");
+    editor.setFontSize(14);
+
+    const runButton = document.getElementById('run-button');
+    const outputArea = document.getElementById('output-area');
+    let pollingInterval;
+
+    function stopPolling() {
+        clearInterval(pollingInterval);
+        runButton.disabled = false;
+        runButton.textContent = 'Run Code';
+    }
+
+    async function pollForResult(submissionId) {
+        try {
+            const response = await fetch(`/api/get_result/${submissionId}`);
+            if (!response.ok) {
+                outputArea.textContent = 'Error fetching result.';
+                stopPolling();
+                return;
+            }
+            const result = await response.json();
+            
+            if (result.status !== 'pending' && result.status !== 'executing') {
+                outputArea.textContent = result.output;
+                stopPolling();
+            } else {
+                // Keep polling, update status
+                outputArea.textContent = `Status: ${result.status}...`;
+            }
+        } catch (error) {
+            outputArea.textContent = 'Error connecting to server for polling.';
+            console.error('Polling Error:', error);
+            stopPolling();
+        }
+    }
+
+    runButton.addEventListener('click', async () => {
+        const payload = { 
+            code: editor.getValue(), 
+            q_id: {{ question.id }} 
+        };
+        if (isChallenge) {
+            payload.start_time = startTime; // Add start time to the payload
+        }
+        outputArea.textContent = 'Submitting code...';
+        runButton.disabled = true;
+        runButton.textContent = 'Running...';
+
+        try {
+            const response = await fetch('{{ url_for("main.run_code") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) throw new Error('Network response was not ok.');
+            
+            const result = await response.json();
+
+            if (result.status === 'queued') {
+                outputArea.textContent = 'Code is in the queue...';
+                // Start polling every 1 second
+                pollingInterval = setInterval(() => pollForResult(result.submission_id), 1000);
+            } else {
+                outputArea.textContent = result.message || 'An unknown error occurred.';
+                runButton.disabled = false;
+            }
+        } catch (error) {
+            outputArea.textContent = 'An error occurred while submitting the code.';
+            console.error('Submit Error:', error);
+            runButton.disabled = false;
+        }
+    });
+
+    // --- Auto-Save Draft Logic (unchanged) ---
+    const saveStatus = document.getElementById('save-status');
+    let saveInterval;
+async function saveDraft() {
+
+        const code = editor.getValue();
+
+        try {
+
+            const response = await fetch('{{ url_for("main.save_draft") }}', {
+
+                method: 'POST',
+
+                headers: { 'Content-Type': 'application/json' },
+
+                body: JSON.stringify({ 
+
+                    code: code,
+
+                    q_id: {{ question.id }} 
+
+                }),
+
+            });
+
+            if (response.ok) {
+
+                saveStatus.textContent = `Draft saved at ${new Date().toLocaleTimeString()}`;
+
+            } else {
+
+                saveStatus.textContent = 'Error saving draft.';
+
+            }
+
+        } catch (error) {
+
+            saveStatus.textContent = 'Error connecting to server.';
+
+            console.error('Save Draft Error:', error);
+
+        }
+
+    }
+
+
+
+    // Save draft every 10 seconds (10000 milliseconds)
+
+    editor.on('change', () => {
+
+        saveStatus.textContent = 'Changes detected, saving...';
+
+        // Debounce the save function
+
+        clearTimeout(saveInterval);
+
+        saveInterval = setTimeout(saveDraft, 2000); // Save 2s after user stops typing
+
+    });
+
+
+
+    // Also save periodically regardless of typing
+    setInterval(saveDraft, 10000);
+
+
+  function toggleHint() {
+        const hintContent = document.getElementById('hint-content');
+        const hintButton = document.getElementById('hint-button');
+        if (hintContent.style.display === 'none') {
+            hintContent.style.display = 'block';
+            hintButton.textContent = 'Hide Hint';
+        } else {
+            hintContent.style.display = 'none';
+            hintButton.textContent = 'Show Hint';
+        }
+    }
+</script>
+{% endblock %}

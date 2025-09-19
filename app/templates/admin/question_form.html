@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ title }} for Section: {{ section.title }}</h1>
+<form method="POST" action="">
+    {{ form.hidden_tag() }}
+    <p>{{ form.title.label }}<br>{{ form.title(size=64) }}</p>
+    <p>{{ form.description.label }}<br>{{ form.description(rows=5, cols=60) }}</p>
+    <p>{{ form.starter_code.label }}<br>{{ form.starter_code(rows=8, cols=60) }}</p>
+    <p>{{ form.hints.label }}<br>{{ form.hints(rows=3, cols=60) }}</p>
+    <p>{{ form.difficulty.label }}<br>{{ form.difficulty() }}</p>
+    <p>{{ form.submit() }}</p>
+</form>
+{% endblock %}

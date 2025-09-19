@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <h1>Submissions for {{ user.username }}</h1>
+    <a href="{{ url_for('admin.users') }}">&larr; Back to User List</a>
+</div>
+
+{% if not submissions %}
+<div class="card">
+    <p>This user has not made any submissions yet.</p>
+</div>
+{% else %}
+    {% for sub, q_title in submissions %}
+    <div class="card">
+        <h3>Question: {{ q_title }}</h3>
+        <p>
+            <strong>Status:</strong> {{ sub.status }} | 
+            <strong>Time Taken:</strong> {{ "%.2f"|format(sub.time_taken) if sub.time_taken else 'N/A' }}s | 
+            <strong>Submitted At:</strong> {{ sub.submitted_at.strftime('%Y-%m-%d %H:%M:%S') }} UTC
+        </p>
+        <hr>
+        <h4>Code:</h4>
+        <pre id="output-area">{{ sub.code }}</pre>
+    </div>
+    {% endfor %}
+{% endif %}
+
+{% endblock %}

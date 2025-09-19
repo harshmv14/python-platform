@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>🏆 Leaderboard</h1>
+
+{% if not leaderboard_visible %}
+    <p>The leaderboard is currently hidden by the admin.</p>
+{% elif not challenge %}
+    <p>There is no active challenge right now.</p>
+{% elif not submissions %}
+    <p>No successful submissions for the challenge '{{ challenge.question.title }}' yet.</p>
+{% else %}
+    <h2>Results for: {{ challenge.question.title }}</h2>
+    <table border="1" style="width: 50%; border-collapse: collapse;">
+        <thead>
+            <tr style="background-color: #f2f2f2;">
+                <th style="padding: 8px;">Rank</th>
+                <th style="padding: 8px;">Username</th>
+                <th style="padding: 8px;">Time Taken (seconds)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for submission in submissions %}
+            <tr>
+                <td style="padding: 8px; text-align: center;">{{ loop.index }}</td>
+                <td style="padding: 8px;">{{ submission.username }}</td>
+                <td style="padding: 8px; text-align: right;">{{ "%.2f"|format(submission.best_time) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% endblock %}
+
