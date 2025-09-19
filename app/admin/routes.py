@@ -1,9 +1,11 @@
 from functools import wraps
-from flask import flash, redirect, url_for
+from flask import flash, redirect, url_for, render_template
 from flask_login import current_user
 from app.models import Section, Question, Challenge, AppSetting, User, Submission
 from datetime import datetime, timezone
-
+from app import db
+from app.admin import bp
+from app.admin.forms import SectionForm, QuestionForm
 def admin_required(f):
     """Decorator to ensure a user is an admin."""
     @wraps(f)
@@ -37,6 +39,8 @@ def add_section():
         return redirect(url_for('admin.dashboard'))
     return render_template('admin/section_form.html', form=form, title='Add Section')
 
+
+
 @bp.route('/question/add/<int:section_id>', methods=['GET', 'POST'])
 @admin_required
 def add_question(section_id):
@@ -49,6 +53,7 @@ def add_question(section_id):
             starter_code=form.starter_code.data,
             hints=form.hints.data,
             difficulty=form.difficulty.data,
+            has_file_manager=form.has_file_manager.data, # <-- ADDED
             section_id=section.id
         )
         db.session.add(question)
@@ -56,8 +61,6 @@ def add_question(section_id):
         flash('New question added successfully!', 'success')
         return redirect(url_for('admin.dashboard'))
     return render_template('admin/question_form.html', form=form, title='Add Question', section=section)
-
-
 
 @bp.route('/section/toggle_lock/<int:section_id>', methods=['POST'])
 @admin_required
@@ -89,6 +92,9 @@ def delete_section(section_id):
     flash('Section and all its questions have been deleted.', 'success')
     return redirect(url_for('admin.dashboard'))
 
+
+
+
 @bp.route('/question/edit/<int:question_id>', methods=['GET', 'POST'])
 @admin_required
 def edit_question(question_id):
@@ -100,10 +106,13 @@ def edit_question(question_id):
         question.starter_code = form.starter_code.data
         question.hints = form.hints.data
         question.difficulty = form.difficulty.data
+        question.has_file_manager = form.has_file_manager.data # <-- ADDED
         db.session.commit()
         flash('Question updated successfully!', 'success')
         return redirect(url_for('admin.dashboard'))
     return render_template('admin/question_form.html', form=form, title='Edit Question', section=question.section)
+
+
 
 @bp.route('/question/delete/<int:question_id>', methods=['POST'])
 @admin_required

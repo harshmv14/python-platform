@@ -3,14 +3,14 @@
 {% block content %}
 <div class="card">
     {% if is_challenge %}
-    <div style="font-size: 1.5em; font-weight: bold; color: #ffc107;">
-        Challenge Mode! Timer: <span id="timer">00:00</span>
+    <div style="font-size: 1.5em; font-weight: bold; color: #ffc107; margin-bottom: 1rem;">
+        🏆 Challenge Mode! Timer: <span id="timer">00:00</span>
     </div>
     {% endif %}
+
     <h1>{{ question.title }}</h1>
-    <p>{{ question.description }}</p>
-</div>
-<div class="card">
+    <p>{{ question.description|safe }}</p>
+
     {% if hints_enabled and question.hints %}
     <div style="margin-top: 2rem;">
         <button id="hint-button" class="btn btn-warning" onclick="toggleHint()">Show Hint</button>
@@ -20,28 +20,56 @@
     </div>
     {% endif %}
 </div>
-<div class="card">
-    <h3>
-        Your Code:
-        <span id="save-status" style="font-size: 0.8em; color: var(--gray-400); margin-left: 20px;"></span>
-    </h3>
-    <div id="code-editor" style="height: 400px; width: 100%;">{{ initial_code or '' }}</div>
-    <br>
-    <button id="run-button" class="btn">Run Code</button>
-</div>
 
-<div class="card">
-    <h3>Output:</h3>
-    <pre id="output-area">Click "Run Code" to see the output.</pre>
-</div>
-
-<script src="{{ url_for('static', filename='js/ace/ace.js') }}"></script>
-<script src="{{ url_for('static', filename='js/ace/mode-python.js') }}"></script>
-<script src="{{ url_for('static', filename='js/ace/theme-dracula.js') }}"></script>
-
+{% if question.has_file_manager %}
+    <style>
+        .ide-container { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .file-browser { width: 100%; md:width: 25%; min-width: 200px; }
+        .editor-container { width: 100%; md:width: 75%; }
+        .file-list { list-style: none; padding: 0; max-height: 400px; overflow-y: auto; }
+        .file-list li { padding: 8px; cursor: pointer; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; word-break: break-all; }
+        .file-list li:hover { background-color: var(--slate-800); }
+        .file-list li.active { background-color: var(--indigo-600); color: white; }
+        .file-actions a { margin-left: 8px; font-size: 0.8em; }
+    </style>
+    <div class="ide-container">
+        <div class="file-browser card">
+            <h4>File Manager</h4>
+            <button id="new-file-btn" class="btn" style="width:100%; margin-bottom: 1rem;">+ New File</button>
+            <ul id="file-list" class="file-list"></ul>
+        </div>
+        <div class="editor-container">
+            <div class="card">
+                <h4 id="active-filename"></h4>
+                <div id="code-editor" style="height: 400px; width: 100%;">{{ initial_code or '' }}</div><br>
+                <button id="run-button" class="btn">▶ Run Code</button>
+            </div>
+            <div class="card">
+                <h3>Output:</h3>
+                <pre id="output-area">Click "Run Code" to see the output.</pre>
+            </div>
+        </div>
+    </div>
 <script>
-  const isChallenge = {{ is_challenge|tojson }};
+    const editor = ace.edit("code-editor");
+    editor.setTheme("ace/theme/chrome");
+    editor.session.setMode("ace/mode/python");
+    editor.setFontSize(14);
+
+    // Get references to all our HTML elements
+    const fileListEl = document.getElementById('file-list');
+    const activeFilenameEl = document.getElementById('active-filename');
+    const runButton = document.getElementById('run-button');
+    const newFileBtn = document.getElementById('new-file-btn');
+    const outputArea = document.getElementById('output-area');
+    
+    // State variables
+    let activeFile = null;
+    const Q_ID = {{ question.id }};
+    const isChallenge = {{ is_challenge|tojson }};
     let startTime = null;
+    
+    // --- Challenge Timer Logic ---
     if (isChallenge) {
         startTime = Date.now();
         const timerDisplay = document.getElementById('timer');
@@ -52,151 +80,201 @@
             timerDisplay.textContent = `${minutes}:${seconds}`;
         }, 1000);
     }
-    const editor = ace.edit("code-editor");
-    editor.setTheme("ace/theme/dracula");
-    editor.session.setMode("ace/mode/python");
-    editor.setFontSize(14);
 
-    const runButton = document.getElementById('run-button');
-    const outputArea = document.getElementById('output-area');
-    let pollingInterval;
+    // --- Core File Management Functions ---
 
-    function stopPolling() {
-        clearInterval(pollingInterval);
-        runButton.disabled = false;
-        runButton.textContent = 'Run Code';
-    }
-
-    async function pollForResult(submissionId) {
-        try {
-            const response = await fetch(`/api/get_result/${submissionId}`);
-            if (!response.ok) {
-                outputArea.textContent = 'Error fetching result.';
-                stopPolling();
-                return;
-            }
-            const result = await response.json();
-            
-            if (result.status !== 'pending' && result.status !== 'executing') {
-                outputArea.textContent = result.output;
-                stopPolling();
-            } else {
-                // Keep polling, update status
-                outputArea.textContent = `Status: ${result.status}...`;
-            }
-        } catch (error) {
-            outputArea.textContent = 'Error connecting to server for polling.';
-            console.error('Polling Error:', error);
-            stopPolling();
+    // Fetches the list of files from the server and updates the UI
+    async function fetchFiles() {
+        const response = await fetch(`/api/files/list?q_id=${Q_ID}`);
+        const files = await response.json();
+        renderFileList(files);
+        
+        // If no file is currently open, open the first one
+        if (files.length > 0 && !activeFile) {
+            const pyFile = files.find(f => f.endsWith('.py')) || files[0];
+            openFile(pyFile);
+        } else if (files.length === 0) {
+            editor.setValue('', -1);
+            activeFile = null;
+            activeFilenameEl.textContent = "No files. Create one to begin.";
         }
     }
 
+    // Renders the list of files in the file browser
+    function renderFileList(files) {
+        fileListEl.innerHTML = '';
+        files.forEach(filename => {
+            const li = document.createElement('li');
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = `📄 ${filename}`;
+            li.appendChild(nameSpan);
+            li.dataset.filename = filename;
+            if (filename === activeFile) {
+                li.classList.add('active');
+            }
+            const actions = document.createElement('span');
+            actions.className = 'file-actions';
+            const downloadLink = document.createElement('a');
+            downloadLink.href = `/download-file?q_id=${Q_ID}&filename=${filename}`;
+            downloadLink.textContent = '📥';
+            actions.appendChild(downloadLink);
+            li.appendChild(actions);
+            // Add click listener to the whole item, but not the download link
+            li.addEventListener('click', (e) => {
+                if (e.target.tagName !== 'A') openFile(filename);
+            });
+            fileListEl.appendChild(li);
+        });
+    }
+
+    // Opens a file by fetching its content and loading it into the editor
+    async function openFile(filename) {
+        const response = await fetch(`/api/files/content?q_id=${Q_ID}&filename=${filename}`);
+        if (!response.ok) {
+            alert(`Error opening file: ${filename}`);
+            return;
+        }
+        const data = await response.json();
+        editor.setValue(data.content, 1); // 1 moves cursor to end
+        activeFile = filename;
+        activeFilenameEl.textContent = `Editing: ${filename}`;
+        
+        // We need to re-render the list to show which file is active
+        const allFiles = await (await fetch(`/api/files/list?q_id=${Q_ID}`)).json();
+        renderFileList(allFiles);
+    }
+    
+    // Saves the content of the currently active file to the server
+    async function saveActiveFile() {
+        if (!activeFile) return;
+        await fetch(`/api/files/save`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({q_id: Q_ID, filename: activeFile, content: editor.getValue()})
+        });
+    }
+
+    // --- Event Listeners ---
+
+    // Handles the "New File" button click
+    newFileBtn.addEventListener('click', async () => {
+        const filename = prompt("Enter new filename (e.g., helpers.py):");
+        if (filename && filename.trim() !== "") {
+            await fetch(`/api/files/create`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({q_id: Q_ID, filename: filename})
+            });
+            // After creating, refresh the file list and open the new file
+            await fetchFiles();
+            openFile(filename);
+        }
+    });
+
+    // Handles the "Run Code" button click
     runButton.addEventListener('click', async () => {
-        const payload = { 
-            code: editor.getValue(), 
-            q_id: {{ question.id }} 
-        };
-        if (isChallenge) {
-            payload.start_time = startTime; // Add start time to the payload
+        if (!activeFile) {
+            alert("Please create or open a file to run.");
+            return;
         }
-        outputArea.textContent = 'Submitting code...';
+        await saveActiveFile(); // Ensure latest code is saved before running
+        outputArea.textContent = 'Executing...';
         runButton.disabled = true;
-        runButton.textContent = 'Running...';
 
-        try {
-            const response = await fetch('{{ url_for("main.run_code") }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-            });
-
-            if (!response.ok) throw new Error('Network response was not ok.');
-            
-            const result = await response.json();
-
-            if (result.status === 'queued') {
-                outputArea.textContent = 'Code is in the queue...';
-                // Start polling every 1 second
-                pollingInterval = setInterval(() => pollForResult(result.submission_id), 1000);
-            } else {
-                outputArea.textContent = result.message || 'An unknown error occurred.';
-                runButton.disabled = false;
-            }
-        } catch (error) {
-            outputArea.textContent = 'An error occurred while submitting the code.';
-            console.error('Submit Error:', error);
-            runButton.disabled = false;
+        const payload = { q_id: Q_ID, code: editor.getValue(), filename: activeFile };
+        if (isChallenge) {
+            payload.start_time = startTime;
         }
+        
+        const response = await fetch(`/api/run_code`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        let fullOutput = result.output;
+        if (result.error) {
+            fullOutput += `\n--- ERRORS ---\n${result.error}`;
+        }
+        outputArea.textContent = fullOutput;
+        runButton.disabled = false;
+        await fetchFiles(); // Refresh file list to show any new files created by the script
     });
-
-    // --- Auto-Save Draft Logic (unchanged) ---
-    const saveStatus = document.getElementById('save-status');
-    let saveInterval;
-async function saveDraft() {
-
-        const code = editor.getValue();
-
-        try {
-
-            const response = await fetch('{{ url_for("main.save_draft") }}', {
-
-                method: 'POST',
-
-                headers: { 'Content-Type': 'application/json' },
-
-                body: JSON.stringify({ 
-
-                    code: code,
-
-                    q_id: {{ question.id }} 
-
-                }),
-
-            });
-
-            if (response.ok) {
-
-                saveStatus.textContent = `Draft saved at ${new Date().toLocaleTimeString()}`;
-
-            } else {
-
-                saveStatus.textContent = 'Error saving draft.';
-
-            }
-
-        } catch (error) {
-
-            saveStatus.textContent = 'Error connecting to server.';
-
-            console.error('Save Draft Error:', error);
-
-        }
-
-    }
-
-
-
-    // Save draft every 10 seconds (10000 milliseconds)
-
+    
+    // Auto-saves the active file 2 seconds after the user stops typing
+    let saveTimeout;
     editor.on('change', () => {
-
-        saveStatus.textContent = 'Changes detected, saving...';
-
-        // Debounce the save function
-
-        clearTimeout(saveInterval);
-
-        saveInterval = setTimeout(saveDraft, 2000); // Save 2s after user stops typing
-
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(saveActiveFile, 2000);
     });
 
+    // Initial load of files when the page opens
+    fetchFiles();
+</script>
+{% else %}
+    <div class="card">
+        <h3>Your Code:</h3>
+        <div id="code-editor" style="height: 400px; width: 100%;">{{ initial_code or question.starter_code or '' }}</div><br>
+        <button id="run-button" class="btn">▶ Run Code</button>
+    </div>
+    <div class="card">
+        <h3>Output:</h3>
+        <pre id="output-area">Click "Run Code" to see the output.</pre>
+    </div>
+    <script>
+        const editor = ace.edit("code-editor");
+        editor.setTheme("ace/theme/chrome");
+        editor.session.setMode("ace/mode/python");
+        editor.setFontSize(14);
 
+        const isChallenge = {{ is_challenge|tojson }};
+        let startTime = null;
 
-    // Also save periodically regardless of typing
-    setInterval(saveDraft, 10000);
+        if (isChallenge) {
+            startTime = Date.now();
+            const timerDisplay = document.getElementById('timer');
+            setInterval(() => {
+                const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+                const minutes = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
+                const seconds = String(elapsedSeconds % 60).padStart(2, '0');
+                timerDisplay.textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
 
+        document.getElementById('run-button').addEventListener('click', async () => {
+            const outputArea = document.getElementById('output-area');
+            outputArea.textContent = 'Executing...';
+            
+            const payload = {
+                q_id: {{ question.id }},
+                code: editor.getValue()
+            };
+            if (isChallenge) {
+                payload.start_time = startTime;
+            }
 
-  function toggleHint() {
+            const response = await fetch('/api/run_code', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            let fullOutput = result.output;
+            if (result.error) {
+                fullOutput += `\n--- ERRORS ---\n${result.error}`;
+            }
+            outputArea.textContent = fullOutput;
+        });
+    </script>
+{% endif %}
+
+<script src="{{ url_for('static', filename='js/ace/ace.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ace/mode-python.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ace/theme-chrome.js') }}"></script>
+
+<script>
+    // Hint toggle function, available to both views
+    function toggleHint() {
         const hintContent = document.getElementById('hint-content');
         const hintButton = document.getElementById('hint-button');
         if (hintContent.style.display === 'none') {

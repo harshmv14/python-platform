@@ -1,4 +1,3 @@
-from flask import Blueprint, render_template, request, jsonify
 from flask_login import current_user, login_required
 from app.models import User, Question, Draft,Submission, Section, AppSetting, Challenge # Import the Draft model
 from app.sandbox import execute_code
@@ -8,8 +7,13 @@ from app import db # Import db
 import io
 import zipfile
 import re
-from flask import send_file
 from datetime import datetime,timezone
+import os
+import pathlib
+from flask import (
+    Blueprint, render_template, request, jsonify, current_app, send_from_directory,
+    send_file
+)
 bp = Blueprint('main', __name__)
 
 # ... (index route is unchanged) ...
@@ -41,30 +45,102 @@ def practice_question(question_id):
         is_challenge=(active_challenge is not None) # Pass a boolean flag
     )
 
+
 # MODIFIED API route to SUBMIT code
+
+
+
+
 @bp.route('/api/run_code', methods=['POST'])
 @login_required
 def run_code():
     data = request.get_json()
-    code = data.get('code', '')
     q_id = data.get('q_id')
-    start_time_ms = data.get('start_time') # Get start time from frontend
+    code = data.get('code')
+    filename = data.get('filename', 'main.py')
+    start_time_ms = data.get('start_time') # Get start time for challenges
+    question = Question.query.get_or_404(q_id)
 
+    if question.has_file_manager:
+        workspace_path = get_or_create_workspace(current_user.id, q_id)
+        result = execute_code(code, workspace_path, filename)
+    else:
+        result = execute_code(code, None, filename)
+
+    # --- ADDED BACK ---
+    # Check if this submission is for an active challenge
     active_challenge = Challenge.query.filter_by(q_id=q_id, is_active=True).first()
+    
+    new_submission = Submission(
+        code=code, 
+        user_id=current_user.id, 
+        q_id=q_id, 
+        status=result.get('status'), 
+        output=result.get('output')
+    )
+    if result.get('error'):
+        new_submission.output += f"\n--- ERROR ---\n{result.get('error')}"
 
-    # ... create new_submission ...
-    new_submission = Submission(code=code, user_id=current_user.id, q_id=q_id, status='pending')
-
-    # Calculate time_taken if it's a challenge submission
-    if active_challenge and start_time_ms:
+    # If it's a successful challenge submission, calculate and save the time
+    if active_challenge and start_time_ms and result.get('status') == 'success':
         end_time_ms = datetime.now(timezone.utc).timestamp() * 1000
         time_taken_seconds = (end_time_ms - start_time_ms) / 1000.0
         new_submission.time_taken = time_taken_seconds
-
+    
     db.session.add(new_submission)
     db.session.commit()
-    task_queue.put(new_submission.id)
-    return jsonify(status='queued', submission_id=new_submission.id)
+    return jsonify(result)
+
+
+@bp.route('/api/files/list')
+@login_required
+def list_files():
+    q_id = request.args.get('q_id', type=int)
+    workspace_path = get_or_create_workspace(current_user.id, q_id)
+    files = [f.name for f in pathlib.Path(workspace_path).iterdir() if f.is_file()]
+    return jsonify(files)
+
+@bp.route('/api/files/content')
+@login_required
+def get_file_content():
+    q_id = request.args.get('q_id', type=int)
+    filename = request.args.get('filename')
+    workspace_path = pathlib.Path(get_or_create_workspace(current_user.id, q_id))
+    file_path = workspace_path / filename
+    if file_path.is_file():
+        return jsonify(content=file_path.read_text())
+    return jsonify(error="File not found"), 404
+
+@bp.route('/api/files/save', methods=['POST'])
+@login_required
+def save_file():
+    data = request.get_json()
+    q_id = data.get('q_id')
+    filename = data.get('filename')
+    content = data.get('content')
+    workspace_path = pathlib.Path(get_or_create_workspace(current_user.id, q_id))
+    (workspace_path / filename).write_text(content)
+    return jsonify(status="success")
+
+@bp.route('/api/files/create', methods=['POST'])
+@login_required
+def create_file():
+    data = request.get_json()
+    q_id = data.get('q_id')
+    filename = data.get('filename')
+    if not filename:
+        return jsonify(error="Filename cannot be empty"), 400
+    workspace_path = pathlib.Path(get_or_create_workspace(current_user.id, q_id))
+    (workspace_path / filename).touch() # Creates an empty file
+    return jsonify(status="success")
+
+@bp.route('/download-file')
+@login_required
+def download_file():
+    q_id = request.args.get('q_id', type=int)
+    filename = request.args.get('filename')
+    workspace_path = get_or_create_workspace(current_user.id, q_id)
+    return send_from_directory(workspace_path, filename, as_attachment=True)
 
 # NEW API route to GET results
 @bp.route('/api/get_result/<int:submission_id>')
@@ -213,3 +289,21 @@ def inject_global_vars():
         leaderboard_visible=(leaderboard_setting and leaderboard_setting.value == 'True'),
         hints_enabled=(hints_setting and hints_setting.value == 'True') # <-- AND THIS
     )
+
+
+def get_or_create_workspace(user_id, question_id):
+    """Creates a persistent workspace and seeds it with a default file if empty."""
+    workspace_path = pathlib.Path(current_app.root_path).parent / 'workspaces' / str(user_id) / str(question_id)
+    
+    is_new_workspace = not workspace_path.exists()
+    workspace_path.mkdir(parents=True, exist_ok=True)
+    
+    # If the workspace was just created, add a default main.py
+    if is_new_workspace:
+        question = Question.query.get(question_id)
+        main_py_path = workspace_path / 'main.py'
+        # Populate with starter code if it exists, otherwise create an empty file
+        starter_content = question.starter_code if question and question.starter_code else '# Start your code here'
+        main_py_path.write_text(starter_content)
+            
+    return str(workspace_path)
