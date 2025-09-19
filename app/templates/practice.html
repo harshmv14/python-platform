@@ -95,7 +95,82 @@
             }, 1000);
         }
         async function fetchFiles() { const response = await fetch(`/api/files/list?q_id=${Q_ID}`); const files = await response.json(); renderFileList(files); if (files.length > 0 && !activeFile) { const pyFile = files.find(f => f.endsWith('.py')) || files[0]; openFile(pyFile); } else if (files.length === 0) { editor.setValue('', -1); activeFile = null; activeFilenameEl.textContent = "No file open. Create a new file."; } }
-        function renderFileList(files) { fileListEl.innerHTML = ''; files.forEach(filename => { const li = document.createElement('li'); const nameSpan = document.createElement('span'); nameSpan.textContent = `📄 ${filename}`; li.appendChild(nameSpan); li.dataset.filename = filename; if (filename === activeFile) { li.classList.add('active'); } const actions = document.createElement('span'); actions.className = 'file-actions'; const downloadLink = document.createElement('a'); downloadLink.href = `/download-file?q_id=${Q_ID}&filename=${filename}`; downloadLink.textContent = '📥'; actions.appendChild(downloadLink); li.appendChild(actions); li.addEventListener('click', (e) => { if (e.target.tagName !== 'A') openFile(filename); }); fileListEl.appendChild(li); }); }
+        // Renders the list of files in the file browser, now with a delete button
+function renderFileList(files) {
+    fileListEl.innerHTML = '';
+    files.forEach(filename => {
+        const li = document.createElement('li');
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = `📄 ${filename}`;
+        li.appendChild(nameSpan);
+
+        li.dataset.filename = filename;
+        if (filename === activeFile) {
+            li.classList.add('active');
+        }
+        
+        const actions = document.createElement('span');
+        actions.className = 'file-actions';
+
+        // Download Link
+        const downloadLink = document.createElement('a');
+        downloadLink.href = `/download-file?q_id=${Q_ID}&filename=${filename}`;
+        downloadLink.title = 'Download';
+        downloadLink.textContent = '📥';
+        actions.appendChild(downloadLink);
+
+        // --- NEW: Delete Button ---
+        const deleteBtn = document.createElement('a');
+        deleteBtn.href = '#';
+        deleteBtn.title = 'Delete';
+        deleteBtn.textContent = '🗑️';
+        deleteBtn.style.color = '#dc3545'; // red color
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation(); // Prevent the file from opening when clicking delete
+            deleteFile(filename);
+        };
+        actions.appendChild(deleteBtn);
+        // --- END NEW ---
+        
+        li.appendChild(actions);
+        li.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'A') openFile(filename);
+        });
+        fileListEl.appendChild(li);
+    });
+}
+        // Deletes a file after asking for user confirmation
+async function deleteFile(filename) {
+    if (!confirm(`Are you sure you want to permanently delete "${filename}"?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/files/delete', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({q_id: Q_ID, filename: filename})
+        });
+
+        if (!response.ok) {
+            throw new Error('Server responded with an error.');
+        }
+        
+        // If the deleted file was the one in the editor, clear the editor
+        if (activeFile === filename) {
+            activeFile = null;
+            editor.setValue('', -1);
+            activeFilenameEl.textContent = "File deleted. Select another file.";
+        }
+
+        // Refresh the file list to show the file has been removed
+        await fetchFiles();
+
+    } catch (error) {
+        alert(`Error deleting file: ${error.message}`);
+    }
+}
         async function openFile(filename) { const response = await fetch(`/api/files/content?q_id=${Q_ID}&filename=${filename}`); const data = await response.json(); editor.setValue(data.content, 1); activeFile = filename; activeFilenameEl.textContent = `Editing: ${filename}`; const allFiles = await (await fetch(`/api/files/list?q_id=${Q_ID}`)).json(); renderFileList(allFiles); }
         async function saveActiveFile() { if (!activeFile) return; await fetch(`/api/files/save`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({q_id: Q_ID, filename: activeFile, content: editor.getValue()}) }); }
         newFileBtn.addEventListener('click', async () => { const filename = prompt("Enter new filename (e.g., helpers.py):"); if (filename && filename.trim() !== "") { await fetch(`/api/files/create`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({q_id: Q_ID, filename: filename}) }); await fetchFiles(); openFile(filename); } });
@@ -109,6 +184,11 @@
         <h3>Your Code:</h3>
         <div id="code-editor" style="height: 400px; width: 100%;">{{ initial_code or question.starter_code or '' }}</div><br>
         <button id="run-button" class="btn">▶ Run Code</button>
+          {% if is_challenge %}
+<button id="submit-btn" class="btn btn-success" style="margin-left: 10px;">
+    🏆 Submit Challenge
+</button>
+{% endif %}
     </div>
     <div class="card">
         <style>

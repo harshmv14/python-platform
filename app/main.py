@@ -355,3 +355,30 @@ def submit_challenge():
         'output': submission.output,
         'message': "Congratulations! Your solution is correct and your time has been logged." if is_correct else "Your output did not match the expected result. Please review your code and try again."
     })
+
+
+# In app/main.py, add this with your other API routes
+
+@bp.route('/api/files/delete', methods=['POST'])
+@login_required
+def delete_file():
+    data = request.get_json()
+    q_id = data.get('q_id')
+    filename = data.get('filename')
+
+    if not all([q_id, filename]):
+        return jsonify(error="Missing required data"), 400
+
+    workspace_path = pathlib.Path(get_or_create_workspace(current_user.id, q_id))
+    file_to_delete = workspace_path / filename
+
+    # --- Security Check ---
+    # Ensure the file is actually inside the workspace to prevent path traversal attacks (e.g., ../../app.py)
+    if not file_to_delete.is_file() or workspace_path not in file_to_delete.resolve().parents:
+        return jsonify(error="File not found or access denied."), 404
+        
+    try:
+        file_to_delete.unlink() # This deletes the file
+        return jsonify(status="success", message=f"File '{filename}' deleted.")
+    except Exception as e:
+        return jsonify(error=f"Could not delete file: {e}"), 500
