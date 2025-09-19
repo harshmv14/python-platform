@@ -21,6 +21,10 @@
             {{ form.difficulty.label }}<br>{{ form.difficulty(class="form-control") }}
         </div>
         <div class="form-group">
+    {{ form.expected_output.label }}<br>
+    {{ form.expected_output(class="form-control", rows=4) }}
+</div>
+        <div class="form-group">
             {{ form.has_file_manager() }}
             {{ form.has_file_manager.label }}
         </div>

@@ -56,6 +56,7 @@ def add_question(section_id):
             has_file_manager=form.has_file_manager.data, # <-- ADDED
             section_id=section.id
         )
+        question.expected_output = form.expected_output.data
         db.session.add(question)
         db.session.commit()
         flash('New question added successfully!', 'success')
@@ -107,6 +108,7 @@ def edit_question(question_id):
         question.hints = form.hints.data
         question.difficulty = form.difficulty.data
         question.has_file_manager = form.has_file_manager.data # <-- ADDED
+        question.expected_output = form.expected_output.data
         db.session.commit()
         flash('Question updated successfully!', 'success')
         return redirect(url_for('admin.dashboard'))

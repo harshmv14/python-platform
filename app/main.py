@@ -307,3 +307,51 @@ def get_or_create_workspace(user_id, question_id):
         main_py_path.write_text(starter_content)
             
     return str(workspace_path)
+
+
+@bp.route('/api/submit_challenge', methods=['POST'])
+@login_required
+def submit_challenge():
+    data = request.get_json()
+    q_id = data.get('q_id')
+    code = data.get('code')
+    start_time_ms = data.get('start_time')
+    
+    question = Question.query.get_or_404(q_id)
+    active_challenge = Challenge.query.filter_by(q_id=q_id, is_active=True).first()
+
+    if not active_challenge:
+        return jsonify(status='error', message='This challenge is no longer active.'), 400
+
+    # Run the code to get the result
+    result = execute_code(code, None, 'main.py') # Simplified execution for challenges
+    
+    # Validate the result
+    is_correct = False
+    if result.get('status') == 'success' and question.expected_output:
+        # Compare the stripped output to the stripped expected output
+        actual_output = result.get('output', '').strip()
+        expected_output = question.expected_output.strip()
+        if actual_output == expected_output:
+            is_correct = True
+    
+    # Log the submission
+    submission = Submission(code=code, user_id=current_user.id, q_id=q_id)
+    submission.status = 'challenge_correct' if is_correct else 'challenge_incorrect'
+    submission.output = result.get('output')
+    if result.get('error'):
+        submission.output += f"\n--- ERROR ---\n{result.get('error')}"
+
+    if is_correct:
+        end_time_ms = datetime.now(timezone.utc).timestamp() * 1000
+        time_taken_seconds = (end_time_ms - start_time_ms) / 1000.0
+        submission.time_taken = time_taken_seconds
+        
+    db.session.add(submission)
+    db.session.commit()
+    
+    return jsonify({
+        'is_correct': is_correct,
+        'output': submission.output,
+        'message': "Congratulations! Your solution is correct and your time has been logged." if is_correct else "Your output did not match the expected result. Please review your code and try again."
+    })

@@ -31,4 +31,5 @@ class QuestionForm(FlaskForm):
     # --- ADDED ---
     # The new checkbox for the admin.
     has_file_manager = BooleanField('Enable File Manager for this Question?')
+    expected_output = TextAreaField('Expected Output (for challenges)')
     submit = SubmitField('Create/Update Question')

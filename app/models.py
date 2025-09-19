@@ -130,6 +130,7 @@ class Question(db.Model):
     # --- CHANGED ---
     # The old file columns are gone, replaced by this boolean switch.
     has_file_manager = db.Column(db.Boolean, default=False, nullable=False)
+    expected_output = db.Column(db.Text)
 
     def __repr__(self):
         return f'<Question {self.title}>'

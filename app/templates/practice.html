@@ -48,6 +48,11 @@
                 <h4 id="active-filename"></h4>
                 <div id="code-editor" style="height: 400px; width: 100%;">{{ initial_code or '' }}</div><br>
                 <button id="run-button" class="btn">▶ Run Code</button>
+                {% if is_challenge %}
+<button id="submit-btn" class="btn btn-success" style="margin-left: 10px;">
+    🏆 Submit Challenge
+</button>
+{% endif %}
             </div>
             <div class="card">
                 <div class="tabs">
@@ -163,6 +168,44 @@
 {% endif %}
 
 <script>
+  // Add this inside the main <script> tag for both views
+
+if (isChallenge) {
+    const submitBtn = document.getElementById('submit-btn');
+    submitBtn.addEventListener('click', async () => {
+        outputArea.textContent = 'Submitting for validation...';
+        submitBtn.disabled = true;
+        runButton.disabled = true;
+
+        const payload = {
+            q_id: Q_ID,
+            code: editor.getValue(),
+            start_time: startTime
+        };
+        // For IDE view, ensure the active file is saved and used in payload
+        if (typeof activeFile !== 'undefined' && activeFile) {
+            await saveActiveFile();
+            payload.filename = activeFile;
+        }
+
+        const response = await fetch('/api/submit_challenge', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        outputArea.textContent = result.output + '\n\n--- STATUS ---\n' + result.message;
+
+        if (result.is_correct) {
+            // Submission was correct, keep button disabled
+        } else {
+            // Submission was incorrect, re-enable buttons
+            submitBtn.disabled = false;
+            runButton.disabled = false;
+        }
+    });
+}
     // --- COMMON FUNCTIONS (Used by both Simple and IDE views) ---
     function toggleHint() {
         const hintContent = document.getElementById('hint-content');
