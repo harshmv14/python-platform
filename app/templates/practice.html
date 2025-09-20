@@ -7,7 +7,11 @@
         🏆 Challenge Mode! Timer: <span id="timer">00:00</span>
     </div>
     {% endif %}
-
+ {% if next_question_id %}
+    <a href="{{ url_for('main.practice_question', question_id=next_question_id) }}" class="btn" style="float: right;">
+        Next Question →
+    </a>
+    {% endif %}
     <h1>{{ question.title }}</h1>
     <p>{{ question.description|safe }}</p>
 
@@ -249,7 +253,20 @@ async function deleteFile(filename) {
 
 <script>
   // Add this inside the main <script> tag for both views
-
+let saveTimeout;
+editor.on('change', () => {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(async () => {
+        await fetch('/api/save_draft', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                q_id: {{ question.id }},
+                code: editor.getValue()
+            })
+        });
+    }, 2000); // Save 2 seconds after user stops typing
+});
 if (isChallenge) {
     const submitBtn = document.getElementById('submit-btn');
     submitBtn.addEventListener('click', async () => {

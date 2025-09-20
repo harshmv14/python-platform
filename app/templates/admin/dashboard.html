@@ -15,7 +15,18 @@
 </form>
     </div>
 </div>
-
+<div class="card">
+    <h3>🚀 Bulk Import from YAML</h3>
+    <p>Upload a .yaml file formatted correctly to add multiple sections and questions at once.</p>
+    <form method="post" action="{{ url_for('admin.import_from_yaml') }}" enctype="multipart/form-data">
+        <div class="form-group">
+            <input type="file" name="file" accept=".yaml,.yml" class="form-control">
+        </div>
+        <div class="form-group">
+            <input type="submit" value="Import Content" class="btn">
+        </div>
+    </form>
+</div>
 <div class="card">
     <a href="{{ url_for('admin.add_section') }}" class="btn btn-success">+ Add New Section</a>
 </div>

@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import flash, redirect, url_for, render_template
+from flask import flash, redirect, url_for, render_template, request
 from flask_login import current_user
 from app.models import Section, Question, Challenge, AppSetting, User, Submission
 from datetime import datetime, timezone
@@ -245,4 +245,71 @@ def toggle_hints():
         setting.value = 'True'
         flash('Hints are now enabled for all users.', 'success')
     db.session.commit()
+    return redirect(url_for('admin.dashboard'))
+
+
+# Add these to the top of app/admin/routes.py
+import yaml
+from werkzeug.utils import secure_filename
+
+# Add this new route function to the end of the file
+@bp.route('/import', methods=['POST'])
+@admin_required
+def import_from_yaml():
+    file = request.files.get('file')
+    if not file or file.filename == '':
+        flash('No file selected for upload.', 'danger')
+        return redirect(url_for('admin.dashboard'))
+
+    filename = secure_filename(file.filename)
+    if not (filename.endswith('.yaml') or filename.endswith('.yml')):
+        flash('Invalid file type. Please upload a .yaml or .yml file.', 'danger')
+        return redirect(url_for('admin.dashboard'))
+
+    try:
+        content = file.read().decode('utf-8')
+        data = yaml.safe_load(content)
+        
+        if not isinstance(data, list):
+            raise ValueError("YAML root must be a list of sections.")
+
+        section_count = 0
+        question_count = 0
+
+        for section_data in data:
+            section_title = section_data.get('section_title')
+            if not section_title:
+                continue
+
+            # Find existing section or create a new one
+            section = Section.query.filter_by(title=section_title).first()
+            if not section:
+                section = Section(title=section_title)
+                db.session.add(section)
+                section_count += 1
+            
+            # Add questions to the section
+            for question_data in section_data.get('questions', []):
+                new_question = Question(
+                    title=question_data.get('title', 'Untitled'),
+                    description=question_data.get('description', ''),
+                    starter_code=question_data.get('starter_code', ''),
+                    hints=question_data.get('hints', ''),
+                    difficulty=question_data.get('difficulty', 1),
+                    has_file_manager=question_data.get('has_file_manager', False),
+                    expected_output=question_data.get('expected_output', ''),
+                    section=section
+                )
+                db.session.add(new_question)
+                question_count += 1
+        
+        db.session.commit()
+        flash(f"Successfully imported {section_count} new sections and {question_count} questions.", 'success')
+
+    except yaml.YAMLError as e:
+        flash(f"Error parsing YAML file: {e}", 'danger')
+    except Exception as e:
+        db.session.rollback()
+        flash(f"An unexpected error occurred: {e}", 'danger')
+
     return redirect(url_for('admin.dashboard'))

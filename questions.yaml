@@ -1,0 +1,202 @@
+- section_title: "Intro to Python"
+  questions:
+    - title: "Hello, Python!"
+      description: |
+        Let's start with the basics! Write a simple program to display the classic 'Hello, World!' message on the screen. It's the traditional first step for every programmer.
+
+        **Sample Output:**
+        ```
+        Hello, World!
+        ```
+      difficulty: 1
+    - title: "The Digital Postcard"
+      description: |
+        Imagine you're sending a postcard from Nadiad. Write your multi-line address in a single `print()` statement to see how Python handles line breaks.
+
+        **Sample Output:**
+        ```
+        Harsh Vaghadia
+        Near D-Mart
+        Nadiad, Gujarat
+        ```
+      difficulty: 1
+    - title: "The Spice Mix"
+      description: |
+        A chef needs to list spices for a recipe on a single line. Use the `sep` parameter in `print()` to display 'Cardamom', 'Clove', and 'Cinnamon' separated by a comma and a space.
+
+        **Sample Output:**
+        ```
+        Cardamom, Clove, Cinnamon
+        ```
+      difficulty: 1
+
+- section_title: "Input & Output"
+  questions:
+    - title: "The Room Designer"
+      description: |
+        You're designing a room and need to quickly calculate its area and perimeter. Write a program that asks for the length and breadth of a rectangle and prints both results.
+
+        **Sample Input:**
+        ```
+        Length: 20
+        Breadth: 10
+        ```
+
+        **Sample Output:**
+        ```
+        Area: 200
+        Perimeter: 60
+        ```
+      difficulty: 1
+    - title: "The Pizza Party Planner"
+      description: "You're ordering a pizza and need to know its area and circumference to see if it's big enough! Ask for the radius of a circle and calculate these two values."
+      difficulty: 1
+    - title: "The Time Traveler"
+      description: "Let's find out how many years you've been on this planet! Ask the user for their birth year and calculate their current age."
+      difficulty: 1
+    - title: "The Ultimate Calculator"
+      description: "Build a simple calculator that takes two numbers from the user and prints the results of their addition, subtraction, multiplication, and division (including quotient and remainder)."
+      difficulty: 2
+    - title: "The Zomato/Swiggy Order Bot"
+      description: |
+        Create a simple chatbot for a food delivery app. Ask for the user's name, a restaurant, and their favorite food, then print a realistic confirmation message.
+
+        **Sample Output:**
+        ```
+        Hi, Rohan!
+        Your order for a delicious Paneer Tikka Masala from 'Curry Kingdom' has been placed. Your food is on its way!
+        ```
+      difficulty: 2
+    - title: "The Delivery ETA Calculator"
+      description: |
+        Your food order is on its way! Write a program that takes the total delivery time in minutes and converts it into hours and minutes to give a clear estimated time of arrival (ETA).
+
+        **Sample Input:**
+        ```
+        ETA in minutes: 75
+        ```
+
+        **Sample Output:**
+        ```
+        Your order will arrive in 1 hour(s) and 15 minute(s).
+        ```
+      difficulty: 2
+    - title: "The Cafe Bill Splitter"
+      description: "You and your friends are at a cafe. Create a tool that asks for the total bill, the tip amount, and the number of friends to split the bill equally among everyone."
+      difficulty: 2
+    - title: "The Big Billion Day Deal Finder"
+      description: "It's a huge sale on Flipkart! Write a program that asks for the original price and the discount percentage of an item, then calculates the final sale price and the amount you saved."
+      difficulty: 2
+
+- section_title: "Control Flow"
+  questions:
+    - title: "The Secret Clubhouse"
+      description: "You've built a secret digital clubhouse. Write a program that asks for a password. If the user enters 'i_love_this_workshop', grant them access."
+      difficulty: 1
+    - title: "The Voter Verification Booth"
+      description: "As a responsible citizen of India, you know you must be 18 to vote. Write a program that asks for a user's age and determines if they are eligible to vote."
+      difficulty: 1
+    - title: "The Traffic Light Navigator"
+      description: "Create a program that tells a driver what to do. Ask for the color of the traffic light ('red', 'yellow', or 'green') and print the correct action."
+      difficulty: 1
+    - title: "The Even-Odd Sorter"
+      description: "Write a quick program that takes a number and instantly tells you if it's even or odd."
+      difficulty: 1
+    - title: "The Automated Gradebook"
+      description: "A teacher needs to assign grades based on marks. Write a program that takes a student's marks and assigns a grade (A, B, C, D, or F). Try using the `match` statement for this!"
+      difficulty: 2
+    - title: "The Daily Commute: Cab vs. Walk"
+      description: "Arun needs to get to his office N blocks away. He can walk at V1 m/s or take a cab that travels at V2 m/s but has to come from the office to pick him up. Help Arun decide which option is faster!"
+      difficulty: 3
+    - title: "Ajit's Strange Jumps"
+      description: "Ajit jumps in a specific sequence (1-jump, 2-jump, 3-jump, and so on). Can you determine if he will ever land on a specific point 'a' that he has in mind?"
+      difficulty: 3
+    - title: "The Profit & Loss Guru"
+      description: "You're an aspiring entrepreneur in Nadiad. Write a program that takes the Cost Price (CP) and Selling Price (SP) of a product and tells you if you made a profit or a loss, along with the percentage."
+      difficulty: 2
+
+- section_title: "Loops & Collections"
+  questions:
+    - title: "The Class Topper"
+      description: "A teacher has a list of marks for a student. Calculate the total marks and the average score to find out their performance."
+      difficulty: 2
+    - title: "The Selective Cleaner"
+      description: "You have a list of numbers. Your task is to remove all numbers that are multiples of 5, but you must keep them if they are also multiples of 3."
+      difficulty: 3
+    - title: "The FizzBuzz Challenge"
+      description: "A classic interview question! Loop through numbers from 1 to 100. Print 'Fizz' for multiples of 3, 'Buzz' for multiples of 5, and 'FizzBuzz' for multiples of both."
+      difficulty: 2
+    - title: "The Mirror Word Detective"
+      description: "A palindrome is a word that reads the same forwards and backwards (like 'madam'). Write a program that checks if a given word is a palindrome."
+      difficulty: 2
+    - title: "The Digit Counter"
+      description: "How many digits does a number have? Write a program that takes an integer and counts the total number of digits in it."
+      difficulty: 2
+    - title: "The Sum of Digits"
+      description: "Write a program that takes an integer and calculates the sum of all its individual digits (e.g., for 123, the sum is 1+2+3=6)."
+      difficulty: 2
+    - title: "The Prime Number Inspector"
+      description: "Prime numbers are the building blocks of all numbers. Create a program that checks if a given number is a prime number."
+      difficulty: 3
+    - title: "The Mountain Peak Finder"
+      description: "Given a list of numbers representing altitudes, find the highest (max) and lowest (min) points without using the built-in `max()` and `min()` functions."
+      difficulty: 3
+    - title: "The Manual Sorter"
+      description: "Sorting is a fundamental concept in programming. Try to sort a list of numbers in ascending order without using the built-in `sort()` function."
+      difficulty: 3
+    - title: "The Vowel-Shy Words"
+      description: "You need to filter a list of strings. Your task is to find and print only the strings that contain one vowel or no vowels at all."
+      difficulty: 2
+    - title: "The Mirrored Array Sum"
+      description: "You are given a list of numbers. Your program should print the sum of each element with its corresponding element from the reversed version of the list."
+      difficulty: 2
+    - title: "The Number Rotator"
+      description: "Using the power of slicing, can you rotate a number? For example, if the input is 12345 and you rotate by 2, the output should be 34512."
+      difficulty: 3
+    - title: "The Lost Robot"
+      description: "A robot starts at (0,0) and moves based on a sequence of commands (UP 5, DOWN 3, etc.). Calculate its final distance from the starting point."
+      difficulty: 3
+    - title: "The Smart Mobile Selector"
+      description: "You have a list of mobile phones with their price and RAM. An 'inferior' phone is one for which another phone exists that is both cheaper and has more RAM. Remove all inferior phones from the list."
+      difficulty: 3
+    - title: "The Email Company Extractor"
+      description: "Given an email address like 'username@companyname.com', write a program that extracts and prints just the company name."
+      difficulty: 2
+    - title: "The Recipe Ingredient Checker"
+      description: "You want to bake a cake but need to check your pantry. Given a list of ingredients you have and a set of ingredients the recipe needs, find out what you're missing."
+      difficulty: 2
+    - title: "The Pangram Detective"
+      description: "A pangram is a sentence that contains every letter of the English alphabet. Write a program to check if a given string is a pangram."
+      difficulty: 3
+    - title: "The Matrix Codebreaker"
+      description: |
+        A determinant is a special number that can be calculated from a square matrix. For this challenge, write a program to find the determinant of a 2x2 matrix.
+
+        **Sample Input:**
+        ```
+        Matrix = [[4, 7], [2, 6]]
+        ```
+
+        **Sample Output:**
+        ```
+        Determinant: 10
+        ```
+      difficulty: 3
+    - title: "The Mirror Matrix"
+      description: "A matrix is symmetrical if it's a perfect mirror image of itself across its main diagonal (from top-left to bottom-right). Write a program to check if a given square matrix is symmetrical."
+      difficulty: 3
+    - title: "The Playlist Shuffle"
+      description: "Your favorite song, 'Computing Paradox', is at position 'k' in a playlist. What will be its new position after the entire playlist is sorted by song length?"
+      difficulty: 2
+    - title: "The Matrix Generator"
+      description: "Given a number of rows (R) and columns (C), generate and print a matrix where numbers from 1 to R*C are filled in row-wise order."
+      difficulty: 3
+    - title: "The One-Flip Challenge"
+      description: "You are given a string of only '0's and '1's. Is it possible to make all the digits the same by flipping just one digit? Print 'YES' or 'NO'."
+      difficulty: 2
+    - title: "The String Validator"
+      description: "From a given list of strings, count how many are 'valid' and how many are 'invalid'. A string is valid if it only contains alphabetic characters and spaces."
+      difficulty: 2
+    - title: "The Spiral Matrix"
+      description: "Here's a real challenge! Given a matrix of numbers, can you print its elements in a spiral order, starting from the top-left corner and moving inwards?"
+      difficulty: 3

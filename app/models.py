@@ -131,7 +131,9 @@ class Question(db.Model):
     # The old file columns are gone, replaced by this boolean switch.
     has_file_manager = db.Column(db.Boolean, default=False, nullable=False)
     expected_output = db.Column(db.Text)
-
+    challenges = db.relationship('Challenge', backref='question', lazy='dynamic', cascade="all, delete-orphan")
+    submissions = db.relationship('Submission', backref='question', lazy='dynamic', cascade="all, delete-orphan")
+    drafts = db.relationship('Draft', backref='question', lazy='dynamic', cascade="all, delete-orphan")
     def __repr__(self):
         return f'<Question {self.title}>'
 
@@ -145,7 +147,6 @@ class Submission(db.Model):
     time_taken = db.Column(db.Float)
     submitted_at = db.Column(db.DateTime, index=True, default=lambda: datetime.now(timezone.utc))
     user = db.relationship('User', backref='submissions')
-    question = db.relationship('Question', backref='submissions')
 
 class Draft(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -154,7 +155,6 @@ class Draft(db.Model):
     code = db.Column(db.Text)
     last_saved = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     user = db.relationship('User', backref='drafts')
-    question = db.relationship('Question', backref='drafts')
 
 class Challenge(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -162,7 +162,7 @@ class Challenge(db.Model):
     start_time = db.Column(db.DateTime)
     end_time = db.Column(db.DateTime)
     is_active = db.Column(db.Boolean, default=False)
-    question = db.relationship('Question', backref='challenges')
+  #  question = db.relationship('Question', backref='challenges')
 
 class AppSetting(db.Model):
     id = db.Column(db.Integer, primary_key=True)

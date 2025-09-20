@@ -4,3 +4,4 @@ SQLAlchemy
 Werkzeug
 Flask-WTF
 Flask-Login
+PyYAML

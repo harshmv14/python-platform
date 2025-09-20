@@ -27,27 +27,73 @@ def index():
     return render_template('index.html', title='Home', sections=sections, active_challenge=active_challenge)
 
 
+# In app/main.py
+
 @bp.route('/practice/<int:question_id>')
 @login_required
 def practice_question(question_id):
     question = Question.query.get_or_404(question_id)
     draft = Draft.query.filter_by(user_id=current_user.id, q_id=question.id).first()
-    initial_code = draft.code if draft else question.starter_code
-
-    # Check if this question is part of an active challenge
+    initial_code = question.starter_code or ''
+     # --- MODIFIED LOADING LOGIC ---
+    if question.has_file_manager:
+        # For IDE view, try to load the code from the user's main.py file.
+        workspace_path = get_or_create_workspace(current_user.id, question_id)
+        main_file = pathlib.Path(workspace_path) / 'main.py'
+        if main_file.exists():
+            initial_code = main_file.read_text()
+    else:
+        # For simple view, load the last saved draft from the database.
+        draft = Draft.query.filter_by(user_id=current_user.id, q_id=question.id).first()
+        if draft:
+            initial_code = draft.code
+    # --- END MODIFIED LOGIC ---
     active_challenge = Challenge.query.filter_by(q_id=question_id, is_active=True).first()
-
+    
+    # --- NEW LOGIC to find the next question ---
+    next_question_id = None
+    # Get all questions in the correct order (by section, then by question id)
+    all_questions = Question.query.order_by(Question.section_id, Question.id).all()
+    
+    # Find the index of the current question in the flat list
+    try:
+        current_index = [q.id for q in all_questions].index(question_id)
+        # If the current question is not the last one, get the next one's id
+        if current_index < len(all_questions) - 1:
+            next_question_id = all_questions[current_index + 1].id
+    except ValueError:
+        # This case should not happen if the question_id is valid
+        pass
+    # --- END NEW LOGIC ---
+    
     return render_template(
         'practice.html', 
         title=question.title, 
         question=question, 
         initial_code=initial_code,
-        is_challenge=(active_challenge is not None) # Pass a boolean flag
+        is_challenge=(active_challenge is not None),
+        next_question_id=next_question_id # <-- Pass the new ID to the template
     )
-
-
 # MODIFIED API route to SUBMIT code
 
+# In app/main.py, with your other API routes
+
+@bp.route('/api/save_draft', methods=['POST'])
+@login_required
+def save_draft():
+    data = request.get_json()
+    q_id = data.get('q_id')
+    code = data.get('code', '')
+
+    draft = Draft.query.filter_by(user_id=current_user.id, q_id=q_id).first()
+    if draft:
+        draft.code = code
+    else:
+        draft = Draft(user_id=current_user.id, q_id=q_id, code=code)
+        db.session.add(draft)
+
+    db.session.commit()
+    return jsonify(status="success", message="Draft saved.")
 
 
 
@@ -158,28 +204,28 @@ def get_result(submission_id):
 
 
 # NEW API route to save drafts
-@bp.route('/api/save_draft', methods=['POST'])
-@login_required
-def save_draft():
-    data = request.get_json()
-    q_id = data.get('q_id')
-    code = data.get('code')
-
-    if not q_id:
-        return jsonify(status='error', message='Question ID missing.'), 400
-
-    draft = Draft.query.filter_by(user_id=current_user.id, q_id=q_id).first()
-    if draft:
-        # Update existing draft
-        draft.code = code
-    else:
-        # Create new draft
-        draft = Draft(user_id=current_user.id, q_id=q_id, code=code)
-        db.session.add(draft)
-
-    db.session.commit()
-    return jsonify(status='success', message='Draft saved.')
-
+# @bp.route('/api/save_draft', methods=['POST'])
+# @login_required
+# def save_draft():
+#     data = request.get_json()
+#     q_id = data.get('q_id')
+#     code = data.get('code')
+#
+#     if not q_id:
+#         return jsonify(status='error', message='Question ID missing.'), 400
+#
+#     draft = Draft.query.filter_by(user_id=current_user.id, q_id=q_id).first()
+#     if draft:
+#         # Update existing draft
+#         draft.code = code
+#     else:
+#         # Create new draft
+#         draft = Draft(user_id=current_user.id, q_id=q_id, code=code)
+#         db.session.add(draft)
+#
+#     db.session.commit()
+#     return jsonify(status='success', message='Draft saved.')
+#
 @bp.app_context_processor
 def inject_global_vars():
     leaderboard_setting = AppSetting.query.filter_by(key='leaderboard_visible').first()
